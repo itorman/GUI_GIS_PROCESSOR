@@ -1,0 +1,13 @@
+
+        Sample Document with Addresses
+        
+        Here are some sample addresses:
+        1. 123 Main Street, New York, NY 10001, USA
+        2. 456 Oak Avenue, Los Angeles, CA 90210, USA
+        3. 789 Pine Road, Chicago, IL 60601, USA
+        
+        Coordinates found:
+        - Latitude: 40.7128, Longitude: -74.0060 (New York)
+        - Latitude: 34.0522, Longitude: -118.2437 (Los Angeles)
+        - Latitude: 41.8781, Longitude: -87.6298 (Chicago)
+        
