@@ -29,7 +29,7 @@ See `requirements.txt` for complete list of required packages.
 ### 1. Clone the Repository
 ```bash
 git clone <repository-url>
-cd ICC_PROJECT_GIS
+cd GUI_PROJECT_GIS
 ```
 
 ### 2. Create Virtual Environment (Recommended)
@@ -162,7 +162,7 @@ data_processor = DataProcessor(target_crs='EPSG:25830')  # ETRS89 UTM 30N
 ##  Project Structure
 
 ```
-ICC_PROJECT_GIS/
+GUI_PROJECT_GIS/
 ├── main.py                 # Main application entry point
 ├── config.py              # Configuration settings
 ├── requirements.txt       # Python dependencies
