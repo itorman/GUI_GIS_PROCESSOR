@@ -2,7 +2,7 @@
 
 A comprehensive Python application for extracting addresses and geographic coordinates from various document formats using Large Language Models (LLMs) and exporting the results to GIS formats.
 
-## 🚀 Features
+##  Features
 
 - **Multi-format Document Support**: PDF, Word (.docx), Excel (.xlsx), and Text (.txt) files
 - **LLM Integration**: Connect to Ollama, vLLM, OpenAI, or local models
@@ -13,7 +13,7 @@ A comprehensive Python application for extracting addresses and geographic coord
 - **OCR Support**: Optional OCR for scanned PDFs using Tesseract
 - **Batch Processing**: Handle large documents with automatic chunking
 
-## 📋 Requirements
+##  Requirements
 
 ### System Requirements
 - Python 3.8 or higher
@@ -24,7 +24,7 @@ A comprehensive Python application for extracting addresses and geographic coord
 ### Python Dependencies
 See `requirements.txt` for complete list of required packages.
 
-## 🛠️ Installation
+##  Installation
 
 ### 1. Clone the Repository
 ```bash
@@ -60,7 +60,7 @@ Download from: https://github.com/UB-Mannheim/tesseract/wiki
 ### 5. Install ArcGIS Pro (Optional)
 For ArcGIS export functionality, install ArcGIS Pro and ensure `arcpy` is available.
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### 1. Start the Application
 ```bash
@@ -79,7 +79,7 @@ python main.py
 3. View results in the "Results" tab
 4. Export to your preferred format
 
-## 📚 Usage Examples
+##  Usage Examples
 
 ### Basic Document Processing
 ```python
@@ -121,7 +121,7 @@ exporter.export_to_shapefile(processed_data, 'output/')
 exporter.export_to_arcgis(processed_data, 'output/')
 ```
 
-## 🔧 Configuration
+##  Configuration
 
 ### LLM Configuration
 The application supports multiple LLM backends:
@@ -159,7 +159,7 @@ config = {
 data_processor = DataProcessor(target_crs='EPSG:25830')  # ETRS89 UTM 30N
 ```
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 ICC_PROJECT_GIS/
@@ -189,7 +189,7 @@ ICC_PROJECT_GIS/
 └── logs/                 # Application logs
 ```
 
-## 🔍 LLM Prompt Engineering
+##  LLM Prompt Engineering
 
 The application uses structured prompts for address extraction:
 
@@ -207,7 +207,7 @@ Task:
    { "original_text": "...", "normalized_address": "...", "latitude": ..., "longitude": ..., "x": ..., "y": ... }
 ```
 
-## 📊 Data Flow
+##  Data Flow
 
 1. **Document Upload** → File validation and format detection
 2. **Text Extraction** → Convert document to plain text with chunking
@@ -216,7 +216,7 @@ Task:
 5. **Coordinate Processing** → Transform coordinates to target CRS
 6. **Export** → Save results in multiple formats
 
-## 🚨 Troubleshooting
+##  Troubleshooting
 
 ### Common Issues
 
@@ -256,7 +256,7 @@ LOGGING_CONFIG = {
 }
 ```
 
-## 🧪 Testing
+##  Testing
 
 ### Run Tests
 ```bash
@@ -275,7 +275,7 @@ python -c "from llm.llm_client import LLMClient; print('LLM client OK')"
 python -c "from postprocessing.data_processor import DataProcessor; print('Data processor OK')"
 ```
 
-## 📈 Performance Optimization
+##  Performance Optimization
 
 ### LLM Processing
 - Use smaller models for faster processing
@@ -292,7 +292,7 @@ python -c "from postprocessing.data_processor import DataProcessor; print('Data 
 - Cache frequently used CRS transformations
 - Use efficient coordinate libraries
 
-## 🔒 Security Considerations
+##  Security Considerations
 
 - Never commit API keys to version control
 - Use environment variables for sensitive configuration
@@ -300,7 +300,7 @@ python -c "from postprocessing.data_processor import DataProcessor; print('Data 
 - Implement rate limiting for external API calls
 - Log security-relevant events
 
-## 🤝 Contributing
+##  Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -308,18 +308,18 @@ python -c "from postprocessing.data_processor import DataProcessor; print('Data 
 4. Add tests for new functionality
 5. Submit a pull request
 
-## 📄 License
+##  License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 - PyQt5 team for the GUI framework
 - Ollama and vLLM teams for local LLM solutions
 - OpenStreetMap for geocoding services
 - GDAL/PROJ for coordinate transformations
 
-## 📞 Support
+##  Support
 
 For issues and questions:
 - Check the troubleshooting section
@@ -327,7 +327,7 @@ For issues and questions:
 - Open an issue on the project repository
 - Contact the development team
 
-## 🔄 Version History
+##  Version History
 
 - **v1.0.0** - Initial release with core functionality
 - Basic document processing and LLM integration
