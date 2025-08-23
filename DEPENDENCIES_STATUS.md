@@ -1,223 +1,224 @@
-# 📋 Estado de Dependencias - Sistema GIS de Extracción de Direcciones
+# Dependency Status - GIS Address Extraction System
 
-## ✅ **DEPENDENCIAS INSTALADAS Y FUNCIONANDO**
+## INSTALLED AND FUNCTIONAL DEPENDENCIES
 
-### **🎨 Interfaz Gráfica**
-- **PyQt5** ✓ - Interfaz gráfica principal
-- **PyQt5-sip** ✓ - Bindings de Python para Qt
-- **PyQt5-Qt5** ✓ - Binarios de Qt5
-- **PyQtWebEngine** ✓ - Widget de mapa web interactivo
+### Graphical Interface
+- PyQt5 ✓ - Main graphical interface
+- PyQt5-sip ✓ - Python bindings for Qt
+- PyQt5-Qt5 ✓ - Qt5 binaries
+- PyQtWebEngine ✓ - Interactive web map widget
 
-### **📄 Procesamiento de Documentos**
+### Document Processing
 
-#### **PDF**
-- **pdfplumber** ✓ - Extracción de texto de PDFs
-- **PyMuPDF (fitz)** ✓ - Procesamiento avanzado de PDFs
-- **pdf2image** ✓ - Conversión de PDF a imágenes para OCR
-- **pdfminer.six** ✓ - Parser de PDF robusto
+#### PDF
+- pdfplumber ✓ - PDF text extraction
+- PyMuPDF (fitz) ✓ - Advanced PDF processing
+- pdf2image ✓ - PDF to image conversion for OCR
+- pdfminer.six ✓ - Robust PDF parser
 
-#### **Word (DOCX)**
-- **python-docx** ✓ - Lectura y escritura de documentos Word
-- **lxml** ✓ - Procesamiento XML para DOCX
+#### Word (DOCX)
+- python-docx ✓ - Reading and writing Word documents
+- lxml ✓ - XML processing for DOCX
 
-#### **Excel**
-- **openpyxl** ✓ - Lectura y escritura de archivos Excel (.xlsx)
-- **xlsxwriter** ✓ - Escritura avanzada de Excel
-- **pandas** ✓ - Manipulación de datos tabulares
+#### Excel
+- openpyxl ✓ - Reading and writing Excel (.xlsx) files
+- xlsxwriter ✓ - Advanced Excel writing
+- pandas ✓ - Tabular data manipulation
 
-#### **Texto**
-- **PIL/Pillow** ✓ - Procesamiento de imágenes
-- **chardet** ✓ - Detección de codificación de texto
+#### Text
+- PIL/Pillow ✓ - Image processing
+- chardet ✓ - Text encoding detection
 
-### **🔍 OCR y Procesamiento de Imágenes**
-- **pytesseract** ✓ - Interfaz Python para Tesseract OCR
-- **Tesseract 5.5.1** ✓ - Motor OCR instalado en sistema (Homebrew)
-- **pdf2image** ✓ - Conversión PDF → Imagen para OCR
+### OCR and Image Processing
+- pytesseract ✓ - Python interface for Tesseract OCR
+- Tesseract 5.5.1 ✓ - OCR engine installed via Homebrew
+- pdf2image ✓ - PDF → Image conversion for OCR
 
-### **🗺️ Procesamiento GIS**
-- **geopandas** ✓ - Manipulación de datos geoespaciales
-- **pyproj** ✓ - Transformaciones de coordenadas
-- **shapely** ✓ - Geometrías y operaciones espaciales
-- **pyogrio** ✓ - I/O para formatos GIS
+### GIS Processing
+- geopandas ✓ - Geospatial data manipulation
+- pyproj ✓ - Coordinate transformations
+- shapely ✓ - Geometries and spatial operations
+- pyogrio ✓ - GIS formats I/O
 
-### **🤖 Integración LLM**
-- **requests** ✓ - Cliente HTTP para APIs
-- **openai** ✓ - Cliente para OpenAI API
-- **json** ✓ - Procesamiento JSON nativo
+### LLM Integration
+- requests ✓ - HTTP client for APIs
+- openai ✓ - OpenAI API client
+- json ✓ - Native JSON processing
 
-### **📊 Procesamiento de Datos**
-- **pandas** ✓ - Manipulación de datos
-- **numpy** ✓ - Operaciones numéricas
-- **typing** ✓ - Anotaciones de tipos
+### Data Processing
+- pandas ✓ - Data manipulation
+- numpy ✓ - Numeric operations
+- typing ✓ - Type annotations
 
-### **🔧 Utilidades**
-- **pathlib** ✓ - Manejo de rutas
-- **logging** ✓ - Sistema de logs
-- **re** ✓ - Expresiones regulares
-- **datetime** ✓ - Manejo de fechas
+### Utilities
+- pathlib ✓ - Path management
+- logging ✓ - Logging system
+- re ✓ - Regular expressions
+- datetime ✓ - Date management
 
-## 🚀 **FUNCIONALIDADES DISPONIBLES**
+## AVAILABLE FUNCTIONALITIES
 
-### **1. Procesamiento de Documentos**
-- ✅ **PDF**: Extracción de texto + OCR para PDFs escaneados
-- ✅ **Word**: Lectura de documentos .docx
-- ✅ **Excel**: Lectura de hojas de cálculo .xlsx
-- ✅ **Texto**: Archivos .txt con detección de codificación
+### 1. Document Processing
+- PDF: Text extraction + OCR for scanned PDFs
+- Word: Reading .docx documents
+- Excel: Reading .xlsx spreadsheets
+- Text: .txt files with encoding detection
 
-### **2. Extracción de Direcciones**
-- ✅ **Modo Test**: Detección inteligente sin LLM
-- ✅ **Ollama**: Integración con servidor local
-- ✅ **vLLM**: Servidor de inferencia local
-- ✅ **OpenAI**: API de OpenAI
-- ✅ **Local Model**: Modelos genéricos
+### 2. Address Extraction
+- Test Mode: Smart detection without LLM
+- Ollama: Integration with local server
+- vLLM: Local inference server
+- OpenAI: OpenAI API
+- Local Model: Generic models
 
-### **3. Detección de Patrones**
-- ✅ **Direcciones de calle**: Múltiples idiomas y formatos
-- ✅ **Coordenadas**: Decimal, DMS, UTM, etc.
-- ✅ **Ciudades y países**: Base de datos integrada
-- ✅ **Regiones administrativas**: Provincias, estados, etc.
+### 3. Pattern Detection
+- Street addresses: Multiple languages and formats
+- Coordinates: Decimal, DMS, UTM, etc.
+- Cities and countries: Integrated database
+- Administrative regions: Provinces, states, etc.
 
-### **4. Exportación de Datos**
-- ✅ **CSV**: Formato estándar - **FUNCIONANDO PERFECTAMENTE**
-- ✅ **Excel**: Hojas de cálculo con formato - **FUNCIONANDO PERFECTAMENTE**
-- ✅ **Shapefile**: Formato GIS estándar - **FUNCIONANDO PERFECTAMENTE**
-- ✅ **GeoJSON**: JSON geoespacial - **FUNCIONANDO PERFECTAMENTE**
-- ❌ **ArcGIS**: Feature Classes (arcpy no disponible, requiere ArcGIS Pro)
+### 4. Data Export
+- CSV: Standard format - FULLY FUNCTIONAL
+- Excel: Formatted spreadsheets - FULLY FUNCTIONAL
+- Shapefile: Standard GIS format - FULLY FUNCTIONAL
+- GeoJSON: Geospatial JSON - FULLY FUNCTIONAL
+- ArcGIS: Feature Classes (arcpy not available, requires ArcGIS Pro) - NOT AVAILABLE
 
-### **5. Transformación de Coordenadas**
-- ✅ **WGS84 (EPSG:4326)**: Coordenadas geográficas
-- ✅ **Web Mercator (EPSG:3857)**: Proyección web
-- ✅ **ETRS89 (EPSG:25830)**: Sistema europeo
-- ✅ **Personalizado**: Cualquier CRS soportado por PROJ
+### 5. Coordinate Transformation
+- WGS84 (EPSG:4326): Geographic coordinates
+- Web Mercator (EPSG:3857): Web projection
+- ETRS89 (EPSG:25830): European system
+- Custom: Any CRS supported by PROJ
 
-## 📱 **INTERFAZ DE USUARIO**
+## USER INTERFACE
 
-### **Características**
-- ✅ **Ventana principal** con pestañas organizadas
-- ✅ **Subida de documentos** drag & drop
-- ✅ **Configuración LLM** flexible
-- ✅ **Tabla de resultados** con formato mejorado
-- ✅ **Barra de progreso** durante procesamiento
-- ✅ **Exportación** a múltiples formatos
-- ✅ **Logs en tiempo real** para debugging
+### Features
+- Main window with organized tabs
+- Document upload via drag & drop
+- Flexible LLM configuration
+- Enhanced format results table
+- Progress bar during processing
+- Export to multiple formats
+- Real-time logs for debugging
 
-### **Configuración**
-- ✅ **Tamaño de chunk** configurable
-- ✅ **OCR habilitado/deshabilitado**
-- ✅ **URLs de servidor** personalizables
-- ✅ **Modelos LLM** seleccionables
-- ✅ **Claves API** configurables
+### Configuration
+- Configurable chunk size
+- Enable/disable OCR
+- Customizable server URLs
+- Selectable LLM models
+- Configurable API keys
 
-## 🧪 **ESTADO DE PRUEBAS**
+## TEST STATUS
 
-### **Pruebas Exitosas**
-- ✅ **Importación de módulos**: Todos los módulos se importan correctamente
-- ✅ **Procesamiento de PDF**: Extracción de texto funcionando
-- ✅ **Detección de direcciones**: Modo test funcionando
-- ✅ **Procesamiento de datos**: Limpieza y validación OK
-- ✅ **Exportación CSV**: Generación correcta
-- ✅ **Exportación Excel**: Generación correcta
-- ✅ **OCR Tesseract**: Funcionando correctamente
+### Successful Tests
+- Module import: All modules import correctly
+- PDF processing: Text extraction working
+- Address detection: Test mode working
+- Data processing: Cleaning and validation OK
+- CSV export: Correct generation
+- Excel export: Correct generation
+- Tesseract OCR: Working properly
 
-### **Resultados de Demo**
-- 📊 **PDF de prueba**: 89 direcciones detectadas, 34 únicas procesadas
-- 📊 **Documento español**: 6 direcciones extraídas correctamente
-- 📊 **Exportación**: CSV y Excel generados exitosamente
+### Demo Results
+- Test PDF: 89 addresses detected, 34 unique processed
+- Spanish document: 6 addresses extracted successfully
+- Export: CSV and Excel generated successfully
 
-### **Estado de Funcionalidad de Exportación**
-- ✅ **CSV**: Exportación exitosa, archivos generados correctamente
-- ✅ **Excel**: Exportación exitosa con hojas múltiples (Addresses + Summary)
-- ✅ **Shapefile**: Exportación exitosa con archivos .shp, .dbf, .prj, .shx, .cpg - **PROBLEMA RESUELTO**
-- ❌ **ArcGIS**: No disponible (requiere instalación de ArcGIS Pro con arcpy)
-- 🔧 **Interfaz GUI**: Botones de exportación habilitados automáticamente después del procesamiento
+### Export Functionality Status
+- CSV: Successful export, files generated correctly
+- Excel: Successful export with multiple sheets (Addresses + Summary)
+- Shapefile: Successful export with .shp, .dbf, .prj, .shx, .cpg files - PROBLEM SOLVED
+- ArcGIS: Not available (requires ArcGIS Pro with arcpy)
+- GUI interface: Export buttons enabled automatically after processing
 
-## 🔧 **INSTALACIÓN Y CONFIGURACIÓN**
+## INSTALLATION AND CONFIGURATION
 
-### **Comandos de Instalación Ejecutados**
+### Installation Commands Executed
 ```bash
-# Interfaz gráfica
+# Graphical interface
 pip install PyQt5 openpyxl xlsxwriter python-docx
 
-# Procesamiento de PDF y OCR
+# PDF and OCR processing
 pip install pdfplumber PyMuPDF pytesseract pdf2image pillow
 
-# Procesamiento GIS
+# GIS processing
 pip install geopandas pyproj shapely
 
-# OCR del sistema
+# System OCR
 brew install tesseract
 ```
 
-### **Verificación de Instalación**
+### Installation Verification
 ```bash
-# Verificar todas las dependencias
-python3 -c "import PyQt5, pdfplumber, fitz, pytesseract, geopandas, pyproj; print('✅ Todas las dependencias funcionando')"
+# Verify all dependencies
+python3 -c "import PyQt5, pdfplumber, fitz, pytesseract, geopandas, pyproj; print('All dependencies working')"
 
-# Ejecutar demo
+# Run demo
 python3 demo_improved.py
 
-# Ejecutar interfaz gráfica
+# Run graphical interface
 python3 main.py
 ```
 
-## 🎯 **PRÓXIMOS PASOS**
+## NEXT STEPS
 
-### **Para el Usuario**
-1. **Ejecutar la aplicación**: `python3 main.py`
-2. **Seleccionar "Test Mode"** para pruebas iniciales
-3. **Subir documentos** (PDF, Word, Excel, TXT)
-4. **Configurar LLM** cuando esté listo
-5. **Exportar resultados** a formato deseado
+### For the User
+1. Run the application: `python3 main.py`
+2. Select "Test Mode" for initial tests
+3. Upload documents (PDF, Word, Excel, TXT)
+4. Configure LLM when ready
+5. Export results to desired format
 
-## 🔧 **PROBLEMAS RESUELTOS RECIENTEMENTE**
+## RECENTLY SOLVED ISSUES
 
-### **Exportación a Shapefile - RESUELTO ✅**
-- **Problema**: Error "too many values to unpack (expected 2)" durante exportación
-- **Causa**: **ERROR REAL IDENTIFICADO**: Desempaquetado incorrecto en `QFileDialog.getExistingDirectory()`
-- **Solución**: Corregido el desempaquetado de `getExistingDirectory()` que solo devuelve un string
-- **Estado**: Funcionando perfectamente, genera archivos .shp, .dbf, .prj, .shx, .cpg
+### Shapefile Export - SOLVED
+- Problem: "too many values to unpack (expected 2)" error during export
+- Cause: REAL ERROR IDENTIFIED: Incorrect unpacking in `QFileDialog.getExistingDirectory()`
+- Solution: Fixed unpacking of `getExistingDirectory()` which only returns a string
+- Status: Working perfectly, generates .shp, .dbf, .prj, .shx, .cpg files
 
-### **Error de Desempaquetado en GUI - RESUELTO ✅**
-- **Problema**: `ValueError: too many values to unpack (expected 2)` en exportación
-- **Causa**: Confusión entre `getSaveFileName()` (devuelve tupla) y `getExistingDirectory()` (devuelve string)
-- **Solución**: Corregido el desempaquetado para métodos que solo devuelven un valor
-- **Estado**: Interfaz de exportación funcionando correctamente
+### Unpacking Error in GUI - SOLVED
+- Problem: `ValueError: too many values to unpack (expected 2)` during export
+- Cause: Confusion between `getSaveFileName()` (returns tuple) and `getExistingDirectory()` (returns string)
+- Solution: Corrected unpacking for methods that only return one value
+- Status: Export interface working correctly
 
-### **Interfaz Completamente en Inglés - IMPLEMENTADO ✅**
-- **Cambio**: Conversión de toda la interfaz de español a inglés
-- **Incluye**: Mensajes de popup, errores, etiquetas, botones y logs
-- **Estado**: Interfaz completamente en inglés
+### Interface Fully in English - IMPLEMENTED
+- Change: Conversion of entire interface from Spanish to English
+- Includes: Popup messages, errors, labels, buttons, and logs
+- Status: Interface fully in English
 
-### **Nueva Pestaña de Visualización de Mapa - IMPLEMENTADO ✅**
-- **Funcionalidad**: Pestaña "Map View" para visualizar geolocalizaciones
-- **Características**: **MAPA REAL INTERACTIVO** con OpenStreetMap y marcadores
-- **Tecnología**: Leaflet.js + PyQtWebEngine para mapa interactivo
-- **Controles**: Botones de refresh, centrado y selector de tipo de mapa
-- **Estado**: Funcionando correctamente con mapa real y marcadores
+### New Map View Tab - IMPLEMENTED
+- Functionality: "Map View" tab for geolocation visualization
+- Features: REAL INTERACTIVE MAP with OpenStreetMap and markers
+- Technology: Leaflet.js + PyQtWebEngine for interactive map
+- Controls: Refresh, center, and map type selector buttons
+- Status: Working correctly with real map and markers
 
-### **Para Desarrollo**
-1. **Configurar servidor LLM** (Ollama, vLLM)
-2. **Ajustar prompts** según necesidades específicas
-3. **Personalizar patrones** de detección
-4. **Agregar formatos** de exportación adicionales
+### For Development
+1. Configure LLM server (Ollama, vLLM)
+2. Adjust prompts as needed
+3. Customize detection patterns
+4. Add additional export formats
 
-## 📞 **SOPORTE**
+## SUPPORT
 
-### **Problemas Comunes**
-- **PyQt5 no encontrado**: `pip install PyQt5`
-- **Tesseract no funciona**: `brew install tesseract`
-- **PDF no se procesa**: Verificar que pdfplumber esté instalado
-- **OCR no funciona**: Verificar instalación de Tesseract
+### Common Issues
+- PyQt5 not found: `pip install PyQt5`
+- Tesseract not working: `brew install tesseract`
+- PDF not processed: Check that pdfplumber is installed
+- OCR not working: Verify Tesseract installation
 
-### **Logs y Debugging**
-- Los logs se guardan en `logs/`
-- Usar `python3 demo_improved.py` para pruebas
-- Verificar salida de consola para errores
+### Logs and Debugging
+- Logs are saved in `logs/`
+- Use `python3 demo_improved.py` for testing
+- Check console output for errors
 
 ---
 
-**Estado**: ✅ **COMPLETAMENTE FUNCIONAL**  
-**Fecha**: $(date)  
-**Versión**: 1.0.0  
-**Python**: 3.11.6  
+Status: FULLY FUNCTIONAL  
+Date: $(date)  
+Version: 1.0.0  
+Python: 3.11.6  
+System: macOS ARM64 
 **Sistema**: macOS ARM64 
