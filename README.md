@@ -30,39 +30,103 @@ See `requirements.txt` for complete list of required packages.
 
 ##  Installation
 
-### 1. Clone the Repository
+### Prerequisites
+
+Before installing the application, ensure you have:
+
+- **Python 3.8 or higher** installed on your system
+- **Git** for cloning the repository
+- **4GB RAM minimum** (8GB recommended)
+- **2GB free disk space**
+- **Tesseract OCR** (optional, for scanned PDFs)
+
+### Step-by-Step Installation
+
+#### 1. Clone the Repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/itorman/GUI_GIS_PROCESSOR.git
 cd GUI_PROJECT_GIS
 ```
 
-### 2. Create Virtual Environment (Recommended)
+#### 2. Create and Activate Virtual Environment
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Create virtual environment
+python -m venv gisvenv_clean
+
+# Activate virtual environment
+# On macOS/Linux:
+source gisvenv_clean/bin/activate
+
+# On Windows:
+# gisvenv_clean\Scripts\activate
 ```
 
-### 3. Install Dependencies
+#### 3. Install Python Dependencies
 ```bash
+# Ensure pip is up to date
+pip install --upgrade pip
+
+# Install all required packages
 pip install -r requirements.txt
 ```
 
-### 4. Install Tesseract OCR (Optional)
-#### macOS
+#### 4. Install Tesseract OCR (Optional)
+**macOS:**
 ```bash
 brew install tesseract
 ```
 
-#### Ubuntu/Debian
+**Ubuntu/Debian:**
 ```bash
 sudo apt-get install tesseract-ocr
 ```
 
-#### Windows
+**Windows:**
 Download from: https://github.com/UB-Mannheim/tesseract/wiki
 
-### 5. Install ArcGIS Pro (Optional)
+#### 5. Install Ollama (Required for LLM Integration)
+**macOS:**
+```bash
+brew install ollama
+```
+
+**Linux:**
+```bash
+curl -fsSL https://ollama.ai/install.sh | sh
+```
+
+**Windows:**
+Download from: https://ollama.ai/download
+
+#### 6. Download Ollama Models
+```bash
+# Start Ollama service
+ollama serve
+
+# Download a model (in another terminal)
+ollama pull llama3:8b
+```
+
+#### 7. Install ArcGIS Pro (Optional)
 For ArcGIS export functionality, install ArcGIS Pro and ensure `arcpy` is available.
+
+### Verification
+
+After installation, verify everything works:
+
+```bash
+# Check Python version
+python --version
+
+# Check if virtual environment is active
+which python  # Should point to gisvenv_clean/bin/python
+
+# Check installed packages
+pip list
+
+# Test Ollama connection
+curl http://localhost:11434/api/tags
+```
 
 ##  Quick Start
 
@@ -72,16 +136,86 @@ python main.py
 ```
 
 ### 2. Configure LLM Settings
-- Go to the "Settings" tab
-- Select your LLM type (Ollama, vLLM, OpenAI, etc.)
-- Enter server URL and model name
-- For OpenAI, add your API key
+
+#### Ollama Configuration (Recommended)
+1. **Start Ollama Service:**
+   ```bash
+   ollama serve
+   ```
+
+2. **Download a Model:**
+   ```bash
+   ollama pull llama3:8b
+   ```
+
+3. **In the Application:**
+   - Go to the "Settings" tab
+   - Select "Ollama" as LLM Type
+   - Server URL: `http://localhost:11434`
+   - Model: `llama3:8b`
+   - Click "Apply Settings"
+
+#### Alternative LLM Options
+- **vLLM**: For high-performance local inference
+- **OpenAI**: For cloud-based processing (requires API key)
+- **Test Mode**: For testing without LLM connection
 
 ### 3. Process Documents
 1. Click "Upload Document" and select your file
 2. Click "Run Extraction" to process with LLM
 3. View results in the "Results" tab
 4. Export to your preferred format
+
+##  Troubleshooting
+
+### Common Issues and Solutions
+
+#### 1. Ollama Connection Issues
+**Problem:** "Connection failed" or "404 errors"
+**Solution:**
+```bash
+# Check if Ollama is running
+curl http://localhost:11434/api/tags
+
+# If not running, start Ollama
+ollama serve
+
+# Verify model is downloaded
+ollama list
+```
+
+#### 2. Python Package Issues
+**Problem:** "Module not found" errors
+**Solution:**
+```bash
+# Ensure virtual environment is active
+source gisvenv_clean/bin/activate
+
+# Reinstall requirements
+pip install -r requirements.txt --force-reinstall
+```
+
+#### 3. Memory Issues
+**Problem:** Application crashes with large documents
+**Solution:**
+- Reduce chunk size in Settings tab
+- Close other applications to free memory
+- Use smaller documents for testing
+
+#### 4. OCR Issues
+**Problem:** Text not extracted from scanned PDFs
+**Solution:**
+- Install Tesseract OCR
+- Enable OCR in Settings tab
+- Ensure PDF is not corrupted
+
+### Getting Help
+
+If you encounter issues:
+1. Check the application logs in the status display
+2. Verify all prerequisites are installed
+3. Test with a simple text document first
+4. Check the [GitHub Issues](https://github.com/itorman/GUI_GIS_PROCESSOR/issues) page
 
 ##  Usage Examples
 
@@ -363,6 +497,42 @@ python -c "from llm.schemas import Address; print('Langextract schemas OK')"
 
 - Never commit API keys to version control
 - Use environment variables for sensitive configuration
+- Keep virtual environments local (don't commit them)
+- Regularly update dependencies for security patches
+
+##  Version History
+
+### v2.0.0 - Initial Operational Version with Ollama Integration
+- **Release Date:** August 31, 2025
+- **Major Features:**
+  - Complete Ollama LLM integration
+  - Langextract library for efficient address extraction
+  - Structured data schemas using Pydantic
+  - Multilingual address detection support
+  - Clean project architecture
+  - Fixed recursion issues and improved error handling
+  - PyQt5 GUI with progress tracking
+  - Multiple export formats (CSV, Excel, Shapefile, ArcGIS)
+
+### v1.0.0 - Initial Release
+- Basic GIS document processing functionality
+- Traditional LLM integration
+- Basic GUI interface
+
+##  Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+
+##  License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+##  Acknowledgments
+
+- **Ollama** for providing local LLM capabilities
+- **Langextract** for efficient structured data extraction
+- **PyQt5** for the GUI framework
+- **Pydantic** for data validation and schemas
 - Validate all input files before processing
 - Implement rate limiting for external API calls
 - Log security-relevant events
