@@ -48,22 +48,31 @@ class ProcessingThread(QThread):
             self.status.emit("Extracting addresses with LLM...")
             self.progress.emit(30)
             
-            # Process with LLM
+            # Process with LLM using improved batch processing
             llm_client = LLMClient(self.llm_config)
-            results = []
             
-            for i, chunk in enumerate(text_chunks):
-                self.status.emit(f"Processing chunk {i+1}/{len(text_chunks)}...")
-                chunk_result = llm_client.extract_addresses(chunk)
+            # Use improved batch processing if available
+            if hasattr(llm_client, 'extract_addresses_batch'):
+                self.status.emit("Processing all chunks with improved batch extraction...")
+                results = llm_client.extract_addresses_batch(text_chunks)
+                self.progress.emit(70)
+            else:
+                # Fallback to individual chunk processing
+                self.status.emit("Processing chunks individually...")
+                results = []
                 
-                # Debug logging
-                if chunk_result:
-                    self.status.emit(f"Chunk {i+1}: Found {len(chunk_result)} addresses")
-                    results.extend(chunk_result)
-                else:
-                    self.status.emit(f"Chunk {i+1}: No addresses found")
-                
-                self.progress.emit(30 + int(40 * (i + 1) / len(text_chunks)))
+                for i, chunk in enumerate(text_chunks):
+                    self.status.emit(f"Processing chunk {i+1}/{len(text_chunks)}...")
+                    chunk_result = llm_client.extract_addresses(chunk)
+                    
+                    # Debug logging
+                    if chunk_result:
+                        self.status.emit(f"Chunk {i+1}: Found {len(chunk_result)} addresses")
+                        results.extend(chunk_result)
+                    else:
+                        self.status.emit(f"Chunk {i+1}: No addresses found")
+                    
+                    self.progress.emit(30 + int(40 * (i + 1) / len(text_chunks)))
             
             self.status.emit("Post-processing data...")
             self.progress.emit(80)
@@ -213,6 +222,11 @@ class MainWindow(QMainWindow):
         tab = QWidget()
         layout = QVBoxLayout(tab)
         
+        # Debug: Add a label to confirm the tab is working
+        debug_label = QLabel("Settings Tab - LLM Configuration")
+        debug_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #333; padding: 10px;")
+        layout.addWidget(debug_label)
+        
         # LLM Configuration
         llm_group = QGroupBox("LLM Configuration")
         llm_layout = QVBoxLayout(llm_group)
@@ -222,18 +236,28 @@ class MainWindow(QMainWindow):
         llm_type_layout.addWidget(QLabel("LLM Type:"))
         self.llm_type_combo = QComboBox()
         self.llm_type_combo.addItems(["Test Mode", "Ollama", "vLLM", "OpenAI", "Local Model"])
+        self.llm_type_combo.setCurrentText("Ollama")  # Set default
+        
+        # Debug: Add logging for ComboBox creation
+        print(f"DEBUG: ComboBox created with {self.llm_type_combo.count()} items")
+        print(f"DEBUG: Current ComboBox text: {self.llm_type_combo.currentText()}")
+        
         llm_layout.addLayout(llm_type_layout)
         
         # Server URL
         server_layout = QHBoxLayout()
         server_layout.addWidget(QLabel("Server URL:"))
         self.server_url_edit = QLineEdit("http://localhost:11434")  # Default Ollama
+        self.server_url_edit.setPlaceholderText("Enter server URL (e.g., http://localhost:11434)")
+        self.server_url_edit.setEnabled(True)
         llm_layout.addLayout(server_layout)
         
         # Model name
         model_layout = QHBoxLayout()
         model_layout.addWidget(QLabel("Model:"))
         self.model_name_edit = QLineEdit("llama3:8b")
+        self.model_name_edit.setPlaceholderText("Enter model name (e.g., llama3:8b)")
+        self.model_name_edit.setEnabled(True)
         llm_layout.addLayout(model_layout)
         
         layout.addWidget(llm_group)
@@ -258,7 +282,111 @@ class MainWindow(QMainWindow):
         
         layout.addWidget(options_group)
         
+        # Apply Settings Button
+        apply_layout = QHBoxLayout()
+        self.apply_settings_btn = QPushButton("Apply Settings")
+        self.apply_settings_btn.clicked.connect(self.apply_settings)
+        self.apply_settings_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 5px;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+        apply_layout.addWidget(self.apply_settings_btn)
+        
+        # Status label for settings
+        self.settings_status_label = QLabel("Settings ready to apply")
+        self.settings_status_label.setStyleSheet("color: #666; font-size: 12px; padding: 5px;")
+        apply_layout.addWidget(self.settings_status_label)
+        
+        layout.addLayout(apply_layout)
+        
+        # Debug: Verify all widgets are created
+        self._verify_settings_widgets()
+        
         return tab
+    
+    def _verify_settings_widgets(self):
+        """Verify that all settings widgets are created correctly"""
+        try:
+            print("DEBUG: Verifying settings widgets...")
+            
+            # Check ComboBox
+            if hasattr(self, 'llm_type_combo'):
+                print(f"DEBUG: ComboBox exists with {self.llm_type_combo.count()} items")
+                print(f"DEBUG: ComboBox current text: {self.llm_type_combo.currentText()}")
+                print(f"DEBUG: ComboBox is enabled: {self.llm_type_combo.isEnabled()}")
+                print(f"DEBUG: ComboBox is visible: {self.llm_type_combo.isVisible()}")
+            else:
+                print("ERROR: ComboBox not found!")
+            
+            # Check LineEdits
+            if hasattr(self, 'server_url_edit'):
+                print(f"DEBUG: Server URL edit exists, text: {self.server_url_edit.text()}")
+                print(f"DEBUG: Server URL edit is enabled: {self.server_url_edit.isEnabled()}")
+            else:
+                print("ERROR: Server URL edit not found!")
+                
+            if hasattr(self, 'model_name_edit'):
+                print(f"DEBUG: Model name edit exists, text: {self.model_name_edit.text()}")
+                print(f"DEBUG: Model name edit is enabled: {self.model_name_edit.isEnabled()}")
+            else:
+                print("ERROR: Model name edit not found!")
+                
+            print("DEBUG: Settings widgets verification complete")
+            
+        except Exception as e:
+            print(f"ERROR in _verify_settings_widgets: {e}")
+    
+    def apply_settings(self):
+        """Apply the current settings and update status"""
+        try:
+            # Get current settings
+            llm_type = self.llm_type_combo.currentText()
+            server_url = self.server_url_edit.text().strip()
+            model = self.model_name_edit.text().strip()
+            chunk_size = self.chunk_size_spin.value()
+            enable_ocr = self.enable_ocr_check.isChecked()
+            
+            # Validate settings
+            if not server_url:
+                QMessageBox.warning(self, "Warning", "Server URL cannot be empty")
+                return
+            
+            if not model:
+                QMessageBox.warning(self, "Warning", "Model name cannot be empty")
+                return
+            
+            # Update status
+            self.settings_status_label.setText(f"Settings applied: {llm_type} - {model}")
+            self.settings_status_label.setStyleSheet("color: #4CAF50; font-size: 12px; padding: 5px; font-weight: bold;")
+            
+            # Log settings
+            self.log_status(f"Settings applied: LLM={llm_type}, Server={server_url}, Model={model}")
+            
+            QMessageBox.information(
+                self,
+                "Settings Applied",
+                f"Configuration updated successfully!\n\n"
+                f"LLM Type: {llm_type}\n"
+                f"Server URL: {server_url}\n"
+                f"Model: {model}\n"
+                f"Chunk Size: {chunk_size}\n"
+                f"OCR Enabled: {enable_ocr}"
+            )
+            
+        except Exception as e:
+            self.settings_status_label.setText("Error applying settings")
+            self.settings_status_label.setStyleSheet("color: #f44336; font-size: 12px; padding: 5px; font-weight: bold;")
+            QMessageBox.critical(self, "Error", f"Failed to apply settings: {e}")
     
     def create_results_tab(self):
         """Create the results display tab"""
