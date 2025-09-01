@@ -191,6 +191,12 @@ class ContextualExtractor:
           }}
         ]
         
+        IMPORTANTE:
+        - latitude_dd y longitude_dd deben ser números decimales válidos (ej: 40.4168, -3.7038)
+        - Si no tienes coordenadas exactas, usa 0.0 para ambos valores
+        - confidence_level debe ser entre 0.0 y 1.0
+        - inferred_address debe ser una dirección completa y específica
+        
         Si no encuentras referencias geográficas, responde: []
         """
         
@@ -210,13 +216,31 @@ class ContextualExtractor:
                 extractions = []
                 for item in data:
                     try:
-                        extraction = StandardizedExtraction(
-                            original_text=item.get('original_text', chunk_text[:100]),
-                            inferred_address=item.get('inferred_address', 'Unknown Location'),
-                            confidence_level=float(item.get('confidence_level', 0.5)),
-                            latitude_dd=float(item.get('latitude_dd', 0.0)),
-                            longitude_dd=float(item.get('longitude_dd', 0.0))
-                        )
+                        # Safely parse coordinates with fallback
+                        lat_val = item.get('latitude_dd')
+                        lon_val = item.get('longitude_dd')
+                        
+                        try:
+                            latitude_dd = float(lat_val) if lat_val is not None else 0.0
+                        except (ValueError, TypeError):
+                            latitude_dd = 0.0
+                        
+                        try:
+                            longitude_dd = float(lon_val) if lon_val is not None else 0.0
+                        except (ValueError, TypeError):
+                            longitude_dd = 0.0
+                        
+                        # Only include if we have valid coordinates or meaningful address
+                        if latitude_dd != 0.0 or longitude_dd != 0.0 or item.get('inferred_address', '').strip():
+                            extraction = StandardizedExtraction(
+                                original_text=item.get('original_text', chunk_text[:100]),
+                                inferred_address=item.get('inferred_address', 'Unknown Location'),
+                                confidence_level=float(item.get('confidence_level', 0.5)),
+                                latitude_dd=latitude_dd,
+                                longitude_dd=longitude_dd
+                            )
+                        else:
+                            continue  # Skip invalid extractions
                         
                         # Only include if meets minimum confidence
                         if extraction.confidence_level >= self.min_confidence:

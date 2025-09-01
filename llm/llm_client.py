@@ -391,7 +391,8 @@ JSON:"""
             "options": {
                 "temperature": 0.1,
                 "top_p": 0.9,
-                "max_tokens": 1000  # Reduced to prevent hanging
+                "num_predict": 500,  # Limit response length
+                "stop": ["\n\n", "```"]  # Stop tokens to prevent long responses
             }
         }
         
