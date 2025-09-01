@@ -155,59 +155,70 @@ class ContextualExtractor:
             prev_context = f"\\nDirecciones ya encontradas: {', '.join(prev_addresses)}"
         
         prompt = f"""
-        Eres un experto en extracción de información geográfica. Analiza el siguiente texto considerando el contexto completo del documento.
+        You are a geographic information extraction expert with advanced AI capabilities. Analyze this text and extract ALL geographic references with maximum precision.
 
-        CONTEXTO DEL DOCUMENTO:
+        DOCUMENT CONTEXT:
         {self.document_summary}
 
-        RESUMEN DEL DOCUMENTO:
-        {self.document_context[:800]}
-        
-        {prev_context}
-        
-        TEXTO A ANALIZAR (Sección {chunk_index + 1}/{total_chunks}):
+        TEXT TO ANALYZE (Section {chunk_index + 1}/{total_chunks}):
         {chunk_text}
-        
-        TAREA:
-        1. Identifica TODAS las referencias geográficas (coordenadas exactas, direcciones, lugares)
-        2. Para cada referencia, INFIERE la dirección más completa posible usando el contexto del documento
-        3. Asigna un nivel de confianza basado en la claridad y contexto
-        4. Convierte todas las coordenadas a formato decimal WGS84
-        
-        IMPORTANTE:
-        - Si encuentras coordenadas parciales, usa el contexto para inferir la ubicación completa
-        - Si encuentras solo nombres de lugares, infiere la dirección más específica posible
-        - Usa el contexto del documento para mejorar las inferencias
-        - Mantén coherencia con las direcciones ya extraídas
-        
-        RESPONDE EN FORMATO JSON ESTRICTO:
+
+        TASK: Extract ALL geographic references (coordinates, addresses, place names) from this text with high precision.
+
+        RESPOND IN STRICT JSON FORMAT:
         [
           {{
-            "original_text": "texto exacto encontrado",
-            "inferred_address": "dirección completa inferida usando contexto",
+            "original_text": "exact text found",
+            "inferred_address": "complete address inferred from context",
             "confidence_level": 0.85,
-            "latitude_dd": 40.123456,
-            "longitude_dd": -3.456789
+            "latitude_dd": 40.4168,
+            "longitude_dd": -3.7038
           }}
         ]
-        
-        IMPORTANTE:
-        - latitude_dd y longitude_dd deben ser números decimales válidos (ej: 40.4168, -3.7038)
-        - Si no tienes coordenadas exactas, usa 0.0 para ambos valores
-        - confidence_level debe ser entre 0.0 y 1.0
-        - inferred_address debe ser una dirección completa y específica
-        
-        Si no encuentras referencias geográficas, responde: []
+
+        CRITICAL RULES FOR ADDRESS INFERENCE:
+        1. ALWAYS prefer SPECIFIC locations over GENERAL ones
+        2. When you see a street name, plaza, or specific place, use the MOST SPECIFIC address possible
+        3. Only use city-level addresses (e.g., "Madrid, Spain") when no more specific location is available
+        4. NEVER use generic descriptions like "Southern districts" or "Business district" - use actual street names
+        5. Leverage your advanced understanding to infer precise locations from context
+        6. Use your knowledge of Spanish geography to provide accurate addresses
+
+        ADDRESS INFERENCE EXAMPLES:
+        ✅ CORRECT (Specific):
+        - "Calle de Atocha" → "Calle de Atocha, Madrid, Spain"
+        - "Plaza Catalunya" → "Plaza Catalunya, Barcelona, Spain"
+        - "Gran Vía 45" → "Gran Vía 45, Madrid, Spain"
+        - "Paseo de la Castellana" → "Paseo de la Castellana, Madrid, Spain"
+
+        ❌ INCORRECT (Too Generic):
+        - "Calle de Atocha" → "Southern districts of Madrid, Spain"
+        - "Plaza Catalunya" → "Barcelona, Spain"
+        - "Gran Vía 45" → "Business district, Madrid, Spain"
+
+        COORDINATE RULES:
+        - Use exact coordinates when provided in the text
+        - For specific streets/places in Madrid, use Madrid coordinates (40.4168, -3.7038)
+        - For specific streets/places in Barcelona, use Barcelona coordinates (41.3851, 2.1734)
+        - confidence_level must be between 0.0 and 1.0
+        - Leverage your advanced capabilities to provide the most accurate coordinates possible
+        - If no geographic references found, respond with: []
         """
         
         return prompt
     
     def _parse_contextual_response(self, response: str, chunk_text: str) -> List[StandardizedExtraction]:
         """Parse LLM response into standardized extractions"""
+        # Log the raw response for debugging
+        logger.info(f"Raw LLM response: {response}")
+        logger.info(f"Response length: {len(response)}")
+        
         try:
             # Try to extract JSON from response
             json_start = response.find('[')
             json_end = response.rfind(']')
+            
+            logger.info(f"JSON start: {json_start}, JSON end: {json_end}")
             
             if json_start != -1 and json_end != -1:
                 json_str = response[json_start:json_end+1]
@@ -254,6 +265,7 @@ class ContextualExtractor:
             
             else:
                 logger.warning("No valid JSON found in LLM response")
+                logger.warning(f"Response content: '{response}'")
                 return []
                 
         except Exception as e:

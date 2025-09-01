@@ -34,10 +34,11 @@ class LLMClient:
         self.config = config
         self.llm_type = config.get('type', 'Ollama')
         self.server_url = config.get('server_url', 'http://localhost:11434')
-        self.model = config.get('model', 'llama3:8b')
+        self.model = config.get('model', 'llama3.1:8b')
         self.api_key = config.get('api_key', None)
         self.max_retries = config.get('max_retries', 3)
-        self.timeout = config.get('timeout', 60)
+        # Timeout configuration - optimized for 8B models (fast and efficient)
+        self.timeout = config.get('timeout', 30)  # 30 seconds for 8B models
         
         # Initialize langextract client for efficient extraction
         self.langextract_client = None
@@ -49,6 +50,9 @@ class LLMClient:
         
         # Validate configuration
         self._validate_config()
+        
+        # Log current configuration
+        logger.info(f"LLM Client initialized: {self.llm_type} - {self.model} - Timeout: {self.timeout}s")
     
     def _initialize_langextract(self):
         """Initialize the langextract client for efficient extraction"""
@@ -93,6 +97,20 @@ class LLMClient:
         
         if self.llm_type == 'OpenAI' and not self.api_key:
             logger.warning("OpenAI API key not provided")
+    
+    def get_config_info(self) -> Dict[str, Any]:
+        """Get current configuration information"""
+        return {
+            'llm_type': self.llm_type,
+            'model': self.model,
+            'server_url': self.server_url,
+            'timeout': self.timeout,
+            'max_retries': self.max_retries,
+            'has_langextract': self.langextract_client is not None,
+            'has_contextual_extractor': self.contextual_extractor is not None
+        }
+    
+
     
     def extract_addresses(self, text_chunk: str) -> List[Dict[str, Any]]:
         """
@@ -389,21 +407,23 @@ JSON:"""
             "prompt": prompt,
             "stream": False,
             "options": {
-                "temperature": 0.1,
-                "top_p": 0.9,
-                "num_predict": 500,  # Limit response length
-                "stop": ["\n\n", "```"]  # Stop tokens to prevent long responses
+                "temperature": 0.1,   # Balanced temperature for 8B models
+                "top_p": 0.9,        # Good quality for 8B models
+                "num_predict": 2000,  # Optimal for 8B model responses
+                "stop": ["```"],      # Only stop on code blocks, not newlines
+                "repeat_penalty": 1.1, # Prevent repetition
+                "top_k": 40          # Good quality control
             }
         }
         
         for attempt in range(self.max_retries):
             try:
-                logger.info(f"Ollama attempt {attempt + 1}: Querying model {self.model}")
+                logger.info(f"Ollama attempt {attempt + 1}: Querying model {self.model} with timeout {self.timeout}s")
                 
                 response = requests.post(
                     url,
                     json=payload,
-                    timeout=30,  # Reduced timeout to prevent hanging
+                    timeout=self.timeout,  # Use configured timeout (optimized per model)
                     headers={'Content-Type': 'application/json'}
                 )
                 response.raise_for_status()

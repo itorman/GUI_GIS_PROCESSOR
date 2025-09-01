@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout
                              QHeaderView, QTextEdit, QTabWidget, QGroupBox,
                              QComboBox, QLineEdit, QSpinBox, QDoubleSpinBox, QCheckBox)
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QCoreApplication
-from PyQt5.QtGui import QFont, QIcon
+from PyQt5.QtGui import QFont, QIcon, QColor
 
 # Import our custom modules
 from preprocessing.document_processor import DocumentProcessor
@@ -263,8 +263,8 @@ class MainWindow(QMainWindow):
         # Model name
         model_layout = QHBoxLayout()
         model_layout.addWidget(QLabel("Model:"))
-        self.model_name_edit = QLineEdit("llama3:8b")
-        self.model_name_edit.setPlaceholderText("Enter model name (e.g., llama3:8b)")
+        self.model_name_edit = QLineEdit("llama3.1:8b")
+        self.model_name_edit.setPlaceholderText("Enter model name (e.g., llama3.1:70b-instruct-q4_0)")
         self.model_name_edit.setEnabled(True)
         llm_layout.addLayout(model_layout)
         
@@ -432,6 +432,9 @@ class MainWindow(QMainWindow):
             mode_display = "Contextual" if use_contextual else "Standard"
             self.settings_status_label.setText(f"Settings applied: {llm_type} - {model} ({mode_display})")
             self.settings_status_label.setStyleSheet("color: #4CAF50; font-size: 12px; padding: 5px; font-weight: bold;")
+            
+            # Log detailed configuration
+            self.log_status(f"Configuration applied: LLM={llm_type}, Model={model}, Timeout=30s (optimized for 8B)")
             
             # Log settings
             self.log_status(f"Settings applied: LLM={llm_type}, Server={server_url}, Model={model}, Mode={extraction_mode}")
@@ -640,11 +643,14 @@ class MainWindow(QMainWindow):
             confidence_item = QTableWidgetItem(f"{confidence:.2f}")
             # Color code confidence
             if confidence >= 0.8:
-                confidence_item.setStyleSheet("background-color: #d4edda; color: #155724;")
+                confidence_item.setBackground(QColor(212, 237, 218))  # Green
+                confidence_item.setForeground(QColor(21, 87, 36))
             elif confidence >= 0.5:
-                confidence_item.setStyleSheet("background-color: #fff3cd; color: #856404;")
+                confidence_item.setBackground(QColor(255, 243, 205))  # Yellow
+                confidence_item.setForeground(QColor(133, 100, 4))
             else:
-                confidence_item.setStyleSheet("background-color: #f8d7da; color: #721c24;")
+                confidence_item.setBackground(QColor(248, 215, 218))  # Red
+                confidence_item.setForeground(QColor(114, 28, 36))
             self.results_table.setItem(i, 2, confidence_item)
             
             # Coordinates
@@ -667,13 +673,17 @@ class MainWindow(QMainWindow):
             quality_item = QTableWidgetItem(f"{quality_label} ({quality_score:.2f})")
             # Color code quality
             if quality_label == 'Excellent':
-                quality_item.setStyleSheet("background-color: #d1ecf1; color: #0c5460;")
+                quality_item.setBackground(QColor(209, 236, 241))  # Light blue
+                quality_item.setForeground(QColor(12, 84, 96))
             elif quality_label == 'Good':
-                quality_item.setStyleSheet("background-color: #d4edda; color: #155724;")
+                quality_item.setBackground(QColor(212, 237, 218))  # Green
+                quality_item.setForeground(QColor(21, 87, 36))
             elif quality_label == 'Fair':
-                quality_item.setStyleSheet("background-color: #fff3cd; color: #856404;")
+                quality_item.setBackground(QColor(255, 243, 205))  # Yellow
+                quality_item.setForeground(QColor(133, 100, 4))
             else:
-                quality_item.setStyleSheet("background-color: #f8d7da; color: #721c24;")
+                quality_item.setBackground(QColor(248, 215, 218))  # Red
+                quality_item.setForeground(QColor(114, 28, 36))
             self.results_table.setItem(i, 5, quality_item)
         
         # Update summary
@@ -687,6 +697,10 @@ class MainWindow(QMainWindow):
         self.export_excel_btn.setEnabled(True)
         self.export_shapefile_btn.setEnabled(True)
         self.export_arcgis_btn.setEnabled(True)
+        
+        # Refresh map with new data
+        if hasattr(self, 'refresh_map'):
+            self.refresh_map()
     
     def update_summary_display(self, results, quality_report):
         """Update summary and quality displays"""
@@ -1405,45 +1419,65 @@ class MainWindow(QMainWindow):
     def refresh_map(self):
         """Refresh the map with current data"""
         if self.current_results is None or not self.web_engine_available:
+            self.log_status("Map refresh skipped: no results or web engine not available")
             return
         
         try:
+            # Check for new standardized column names first
+            lat_col = 'latitude_dd' if 'latitude_dd' in self.current_results.columns else 'latitude'
+            lon_col = 'longitude_dd' if 'longitude_dd' in self.current_results.columns else 'longitude'
+            address_col = 'inferred_address' if 'inferred_address' in self.current_results.columns else 'normalized_address'
+            
+            self.log_status(f"Map refresh: using columns lat_col={lat_col}, lon_col={lon_col}, address_col={address_col}")
+            self.log_status(f"Available columns: {list(self.current_results.columns)}")
+            
             # Count points with coordinates
-            total_points = len(self.current_results[self.current_results['longitude'].notna() & self.current_results['latitude'].notna()])
+            total_points = len(self.current_results[self.current_results[lon_col].notna() & self.current_results[lat_col].notna()])
+            self.log_status(f"Found {total_points} points with coordinates")
             
             if total_points > 0:
                 # Clear existing points
+                self.log_status("Clearing existing map points")
                 self.map_view.page().runJavaScript("clearPoints();")
                 
                 # Add new points from current results
-                for _, row in self.current_results.iterrows():
-                    if pd.notna(row['longitude']) and pd.notna(row['latitude']):
-                        lon = float(row['longitude'])
-                        lat = float(row['latitude'])
-                        address = str(row['normalized_address']).strip()
+                for i, (_, row) in enumerate(self.current_results.iterrows()):
+                    if pd.notna(row[lon_col]) and pd.notna(row[lat_col]):
+                        lon = float(row[lon_col])
+                        lat = float(row[lat_col])
+                        address = str(row[address_col]).strip()
+                        
+                        self.log_status(f"Adding point {i+1}: lon={lon}, lat={lat}, address='{address}'")
                         
                         # Escape quotes in address for JavaScript
                         address = address.replace("'", "\\'").replace('"', '\\"')
                         
                         # Add point to map
                         js_code = f"addPoint({lon}, {lat}, '{address}');"
+                        self.log_status(f"Executing JavaScript: {js_code}")
                         self.map_view.page().runJavaScript(js_code)
                 
                 # Fit map to show all points
+                self.log_status("Fitting map to show all points")
                 self.map_view.page().runJavaScript("fitToPoints();")
                 
                 # Update map info
                 self.map_info_label.setText(f"Map loaded with {total_points} locations")
+                self.log_status(f"Map refresh completed successfully with {total_points} locations")
             else:
                 self.map_info_label.setText("No geographic data available")
+                self.log_status("No geographic data available for map")
             
             # Enable map controls
             self.refresh_map_btn.setEnabled(True)
             self.center_map_btn.setEnabled(True)
             
         except Exception as e:
-            self.log_status(f"Map refresh error: {str(e)}")
-            self.map_info_label.setText(f"Map error: {str(e)}")
+            error_msg = f"Map refresh error: {str(e)}"
+            self.log_status(error_msg)
+            self.map_info_label.setText(error_msg)
+            import traceback
+            self.log_status(f"Traceback: {traceback.format_exc()}")
     
     def center_map_on_data(self):
         """Center the map on the loaded data"""

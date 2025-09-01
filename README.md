@@ -145,6 +145,10 @@ python main.py
 
 2. **Download a Model:**
    ```bash
+   # For best quality (recommended):
+   ollama pull llama3.1:70b-instruct-q4_0
+   
+   # For faster processing:
    ollama pull llama3:8b
    ```
 
@@ -152,7 +156,7 @@ python main.py
    - Go to the "Settings" tab
    - Select "Ollama" as LLM Type
    - Server URL: `http://localhost:11434`
-   - Model: `llama3:8b`
+   - Model: `llama3.1:70b-instruct-q4_0` (or your preferred model)
    - Click "Apply Settings"
 
 #### Alternative LLM Options
@@ -441,6 +445,11 @@ python -c "from llm.schemas import Address; print('Langextract schemas OK')"
 - **Batch processing** for multiple chunks with improved efficiency
 - **Automatic fallback** to traditional methods if langextract fails
 - **Schema caching** for better performance on repeated extractions
+
+### Model-Specific Optimizations
+- **llama3.1:70b-instruct-q4_0**: Optimized for maximum accuracy with increased timeout (60s) and enhanced parameters
+- **llama3:8b**: Optimized for speed with standard timeout (30s) and balanced parameters
+- **Other models**: Automatically adjusted based on model capabilities
 
 ### Traditional Optimization
 - Use smaller models for faster processing

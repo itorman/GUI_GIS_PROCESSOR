@@ -386,7 +386,15 @@ class DataProcessor:
         has_coordinate_data = False
         valid_coords = pd.Series([True] * len(df), index=df.index)  # Start with True
         
-        if 'latitude' in df.columns and df['latitude'].notna().any():
+        # Check for new standardized column names first
+        if 'latitude_dd' in df.columns and df['latitude_dd'].notna().any():
+            has_coordinate_data = True
+            valid_coords = valid_coords & (df['latitude_dd'].notna() | df['longitude_dd'].notna())
+        elif 'longitude_dd' in df.columns and df['longitude_dd'].notna().any():
+            has_coordinate_data = True
+            valid_coords = valid_coords & (df['latitude_dd'].notna() | df['longitude_dd'].notna())
+        # Fallback to old column names
+        elif 'latitude' in df.columns and df['latitude'].notna().any():
             has_coordinate_data = True
             valid_coords = valid_coords & (df['latitude'].notna() | df['longitude'].notna() | df['x'].notna() | df['y'].notna())
         elif 'longitude' in df.columns and df['longitude'].notna().any():
@@ -413,18 +421,21 @@ class DataProcessor:
         if not self.transformer or df.empty:
             return df
         
-        # Transform lat,lon to target CRS
-        if 'latitude' not in df.columns or 'longitude' not in df.columns:
-            logger.warning("Cannot transform coordinates: latitude or longitude columns missing")
+        # Transform lat,lon to target CRS (support both old and new column names)
+        lat_col = 'latitude_dd' if 'latitude_dd' in df.columns else 'latitude'
+        lon_col = 'longitude_dd' if 'longitude_dd' in df.columns else 'longitude'
+        
+        if lat_col not in df.columns or lon_col not in df.columns:
+            logger.warning(f"Cannot transform coordinates: {lat_col} or {lon_col} columns missing")
             return df
         
-        valid_coords = df['latitude'].notna() & df['longitude'].notna()
+        valid_coords = df[lat_col].notna() & df[lon_col].notna()
         
         if valid_coords.any():
             try:
                 # Get coordinate values
-                lon_values = df.loc[valid_coords, 'longitude'].values
-                lat_values = df.loc[valid_coords, 'latitude'].values
+                lon_values = df.loc[valid_coords, lon_col].values
+                lat_values = df.loc[valid_coords, lat_col].values
                 
                 logger.debug(f"Transforming {len(lon_values)} coordinates from WGS84 to {self.target_crs}")
                 
@@ -459,16 +470,19 @@ class DataProcessor:
         if df.empty:
             return df
         
-        # If x,y are missing but lat,lon available, copy them
-        if 'x' in df.columns and 'longitude' in df.columns:
-            missing_x = df['x'].isna() & df['longitude'].notna()
-            if missing_x.any():
-                df.loc[missing_x, 'x'] = df.loc[missing_x, 'longitude']
+        # If x,y are missing but lat,lon available, copy them (support both old and new column names)
+        lat_col = 'latitude_dd' if 'latitude_dd' in df.columns else 'latitude'
+        lon_col = 'longitude_dd' if 'longitude_dd' in df.columns else 'longitude'
         
-        if 'y' in df.columns and 'latitude' in df.columns:
-            missing_y = df['y'].isna() & df['latitude'].notna()
+        if 'x' in df.columns and lon_col in df.columns:
+            missing_x = df['x'].isna() & df[lon_col].notna()
+            if missing_x.any():
+                df.loc[missing_x, 'x'] = df.loc[missing_x, lon_col]
+        
+        if 'y' in df.columns and lat_col in df.columns:
+            missing_y = df['y'].isna() & df[lat_col].notna()
             if missing_y.any():
-                df.loc[missing_y, 'y'] = df.loc[missing_y, 'latitude']
+                df.loc[missing_y, 'y'] = df.loc[missing_y, lat_col]
         
         return df
     
@@ -524,14 +538,17 @@ class DataProcessor:
             'coordinate_ranges': {}
         }
         
-        # Calculate coordinate statistics safely
-        coord_cols = ['latitude', 'longitude', 'x', 'y']
+        # Calculate coordinate statistics safely (support both old and new column names)
+        coord_cols = ['latitude_dd', 'longitude_dd', 'latitude', 'longitude', 'x', 'y']
         available_coord_cols = [col for col in coord_cols if col in df.columns]
         
         if available_coord_cols:
             stats['records_with_coordinates'] = df[available_coord_cols].notna().any(axis=1).sum()
         
-        if 'latitude' in df.columns and 'longitude' in df.columns:
+        # Check for new standardized columns first
+        if 'latitude_dd' in df.columns and 'longitude_dd' in df.columns:
+            stats['records_with_lat_lon'] = df[['latitude_dd', 'longitude_dd']].notna().all(axis=1).sum()
+        elif 'latitude' in df.columns and 'longitude' in df.columns:
             stats['records_with_lat_lon'] = df[['latitude', 'longitude']].notna().all(axis=1).sum()
         
         if 'x' in df.columns and 'y' in df.columns:
@@ -587,8 +604,11 @@ class DataProcessor:
         for idx, row in sample_df.iterrows():
             summary_lines.append(f"Record {idx + 1}:")
             summary_lines.append(f"  Address: {row.get('normalized_address', 'N/A')}")
-            summary_lines.append(f"  Lat: {row.get('latitude', 'N/A')}")
-            summary_lines.append(f"  Lon: {row.get('longitude', 'N/A')}")
+            # Check for new standardized columns first
+            lat_val = row.get('latitude_dd', row.get('latitude', 'N/A'))
+            lon_val = row.get('longitude_dd', row.get('longitude', 'N/A'))
+            summary_lines.append(f"  Lat: {lat_val}")
+            summary_lines.append(f"  Lon: {lon_val}")
             summary_lines.append(f"  X: {row.get('x', 'N/A')}")
             summary_lines.append(f"  Y: {row.get('y', 'N/A')}")
             summary_lines.append("")
@@ -608,8 +628,8 @@ class DataProcessor:
         
         issues = []
         
-        # Check for missing coordinates
-        coord_cols = ['latitude', 'longitude', 'x', 'y']
+        # Check for missing coordinates (support both old and new column names)
+        coord_cols = ['latitude_dd', 'longitude_dd', 'latitude', 'longitude', 'x', 'y']
         available_coord_cols = [col for col in coord_cols if col in df.columns]
         
         if available_coord_cols:
@@ -617,14 +637,17 @@ class DataProcessor:
             if missing_coords.any():
                 issues.append(f"{missing_coords.sum()} records have no coordinates")
         
-        # Check for invalid coordinate ranges
-        if 'latitude' in df.columns:
-            invalid_lat = (df['latitude'] < -90) | (df['latitude'] > 90)
+        # Check for invalid coordinate ranges (check new standardized columns first)
+        lat_col = 'latitude_dd' if 'latitude_dd' in df.columns else 'latitude'
+        lon_col = 'longitude_dd' if 'longitude_dd' in df.columns else 'longitude'
+        
+        if lat_col in df.columns:
+            invalid_lat = (df[lat_col] < -90) | (df[lat_col] > 90)
             if invalid_lat.any():
                 issues.append(f"{invalid_lat.sum()} records have invalid latitude values")
         
-        if 'longitude' in df.columns:
-            invalid_lon = (df['longitude'] < -180) | (df['longitude'] > 180)
+        if lon_col in df.columns:
+            invalid_lon = (df[lon_col] < -180) | (df[lon_col] > 180)
             if invalid_lon.any():
                 issues.append(f"{invalid_lon.sum()} records have invalid longitude values")
         
