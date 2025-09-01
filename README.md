@@ -170,52 +170,29 @@ python main.py
 
 ### Common Issues and Solutions
 
-#### 1. Ollama Connection Issues
-**Problem:** "Connection failed" or "404 errors"
-**Solution:**
-```bash
-# Check if Ollama is running
-curl http://localhost:11434/api/tags
+#### LLM Connection Failed
+- Ensure Ollama is running: `ollama serve`
+- Verify models: `ollama list`
+- Test endpoint: `curl http://localhost:11434/api/tags`
+- Check server URL and model in Settings
 
-# If not running, start Ollama
-ollama serve
+#### Document Processing Errors
+- Verify file format and integrity
+- Enable OCR for scanned PDFs (install Tesseract)
+- Reduce chunk size for very large documents
 
-# Verify model is downloaded
-ollama list
+#### Export Failures
+- Verify write permissions and available disk space
+- Ensure dependencies for geospatial exports are installed
+
+### Debug Mode
+Increase logging verbosity (e.g., in `main.py`):
+```python
+import logging
+logging.getLogger('preprocessing').setLevel(logging.DEBUG)
+logging.getLogger('llm').setLevel(logging.DEBUG)
+logging.getLogger('postprocessing').setLevel(logging.DEBUG)
 ```
-
-#### 2. Python Package Issues
-**Problem:** "Module not found" errors
-**Solution:**
-```bash
-# Ensure virtual environment is active
-source gisvenv_clean/bin/activate
-
-# Reinstall requirements
-pip install -r requirements.txt --force-reinstall
-```
-
-#### 3. Memory Issues
-**Problem:** Application crashes with large documents
-**Solution:**
-- Reduce chunk size in Settings tab
-- Close other applications to free memory
-- Use smaller documents for testing
-
-#### 4. OCR Issues
-**Problem:** Text not extracted from scanned PDFs
-**Solution:**
-- Install Tesseract OCR
-- Enable OCR in Settings tab
-- Ensure PDF is not corrupted
-
-### Getting Help
-
-If you encounter issues:
-1. Check the application logs in the status display
-2. Verify all prerequisites are installed
-3. Test with a simple text document first
-4. Check the [GitHub Issues](https://github.com/itorman/GUI_GIS_PROCESSOR/issues) page
 
 ##  Usage Examples
 
@@ -326,34 +303,31 @@ data_processor = DataProcessor(target_crs='EPSG:25830')  # ETRS89 UTM 30N
 
 ```
 GUI_PROJECT_GIS/
-├── main.py                 # Main application entry point
-├── config.py              # Configuration settings
-├── requirements.txt       # Python dependencies
-├── README.md             # This file
-├── preprocessing/         # Document processing modules
+├── main.py                  # Main application entry point
+├── requirements.txt         # Python dependencies
+├── README.md                # Documentation
+├── config/                  # Configuration package
+│   ├── __init__.py
+│   └── langextract_config.py # Langextract and extraction settings
+├── llm/                     # LLM integration and schemas
+│   ├── __init__.py
+│   ├── llm_client.py        # LLM client (Ollama/OpenAI/vLLM/Test)
+│   ├── langextract_client.py # Wrapper around langextract
+│   └── schemas.py           # Pydantic data schemas
+├── preprocessing/           # Document processing
 │   ├── __init__.py
 │   └── document_processor.py
-├── llm/                  # LLM integration with langextract
+├── postprocessing/          # Data cleaning and validation
 │   ├── __init__.py
-│   ├── llm_client.py     # Enhanced with langextract
-│   ├── langextract_client.py  # Specialized langextract client
-│   └── schemas.py        # Pydantic data schemas
-├── postprocessing/        # Data processing and validation
-│   ├── __init__.py
-│   └── data_processor.py # Enhanced with schema validation
-├── export/               # Data export modules
+│   └── data_processor.py
+├── export/                  # Export utilities (CSV, XLSX, Shapefile)
 │   ├── __init__.py
 │   └── data_exporter.py
-├── config/               # Configuration files
-│   └── langextract_config.py  # Langextract settings
-├── utils/                # Utility functions
-│   ├── __init__.py
-│   ├── file_utils.py
-│   ├── coordinate_utils.py
-│   └── validation_utils.py
-├── output/               # Export output directory
-├── temp/                 # Temporary files
-└── logs/                 # Application logs
+└── utils/                   # Shared utilities
+    ├── __init__.py
+    ├── file_utils.py
+    ├── coordinate_utils.py
+    └── validation_utils.py
 ```
 
 ##  LLM Integration and Langextract Optimization
@@ -444,28 +418,18 @@ LOGGING_CONFIG = {
 
 ##  Testing
 
-### Run Langextract Integration Tests
+### Quick Component Checks
 ```bash
-python test_langextract_integration.py
-```
-
-### Run Traditional Tests
-```bash
-pytest tests/
-```
-
-### Test Individual Components
-```python
-# Test document processor
+# Document processor import
 python -c "from preprocessing.document_processor import DocumentProcessor; print('Document processor OK')"
 
-# Test LLM client with langextract
+# LLM client import
 python -c "from llm.llm_client import LLMClient; print('LLM client OK')"
 
-# Test data processor with schema validation
+# Data processor import
 python -c "from postprocessing.data_processor import DataProcessor; print('Data processor OK')"
 
-# Test langextract schemas
+# Schemas import
 python -c "from llm.schemas import Address; print('Langextract schemas OK')"
 ```
 
