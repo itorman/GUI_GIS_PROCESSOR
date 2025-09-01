@@ -159,4 +159,11 @@ demo_output_improved/
 # ArcGIS specific (if any)
 *.gdb/
 *.mxd
-*.lyr 
+*.lyr
+
+# New architecture additions
+config/app_config.json
+config/local_config.json
+config/production_config.json
+logs/error.log
+.pytest_cache/ 
