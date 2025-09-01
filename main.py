@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout
                              QWidget, QPushButton, QTableWidget, QTableWidgetItem,
                              QFileDialog, QLabel, QProgressBar, QMessageBox,
                              QHeaderView, QTextEdit, QTabWidget, QGroupBox,
-                             QComboBox, QLineEdit, QSpinBox, QCheckBox)
+                             QComboBox, QLineEdit, QSpinBox, QDoubleSpinBox, QCheckBox)
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QCoreApplication
 from PyQt5.QtGui import QFont, QIcon
 
