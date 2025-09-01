@@ -10,9 +10,10 @@ from typing import List, Dict, Any, Optional, Union
 import logging
 from pathlib import Path
 
-# Import langextract schemas for validation
+# Import schemas for validation
 try:
     from llm.schemas import Address, AddressExtractionResult
+    from llm.standardized_schemas import StandardizedExtraction
     LANGEXTRACT_AVAILABLE = True
 except ImportError:
     LANGEXTRACT_AVAILABLE = False
@@ -647,4 +648,88 @@ class DataProcessor:
             'status': quality_status,
             'issues': issues,
             'total_issues': len(issues)
-        } 
+        }
+    
+    def process_standardized_results(self, standardized_extractions: List[StandardizedExtraction]) -> pd.DataFrame:
+        """
+        Process standardized extraction results for export
+        
+        Args:
+            standardized_extractions: List of StandardizedExtraction objects
+            
+        Returns:
+            Processed DataFrame ready for export
+        """
+        if not standardized_extractions:
+            logger.warning("No standardized extractions to process")
+            return pd.DataFrame()
+        
+        logger.info(f"Processing {len(standardized_extractions)} standardized extractions")
+        
+        # Convert to DataFrame
+        data = []
+        for extraction in standardized_extractions:
+            data.append({
+                'original_text': extraction.original_text,
+                'inferred_address': extraction.inferred_address,
+                'confidence_level': extraction.confidence_level,
+                'latitude_dd': extraction.latitude_dd,
+                'longitude_dd': extraction.longitude_dd
+            })
+        
+        df = pd.DataFrame(data)
+        
+        if df.empty:
+            return df
+        
+        # Basic validation and cleaning
+        df = self._validate_standardized_coordinates(df)
+        df = self._remove_standardized_duplicates(df)
+        
+        # Log processing results
+        logger.info(f"Standardized processing complete: {len(df)} final records")
+        
+        return df
+    
+    def _validate_standardized_coordinates(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Validate coordinates in standardized format"""
+        if df.empty:
+            return df
+        
+        initial_count = len(df)
+        
+        # Remove invalid coordinates
+        valid_coords = (
+            df['latitude_dd'].between(-90, 90) & 
+            df['longitude_dd'].between(-180, 180) &
+            df['latitude_dd'].notna() &
+            df['longitude_dd'].notna()
+        )
+        
+        df = df[valid_coords].copy()
+        
+        removed_count = initial_count - len(df)
+        if removed_count > 0:
+            logger.warning(f"Removed {removed_count} records with invalid coordinates")
+        
+        return df
+    
+    def _remove_standardized_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Remove duplicates from standardized data"""
+        if df.empty:
+            return df
+        
+        initial_count = len(df)
+        
+        # Remove exact coordinate duplicates, keeping highest confidence
+        df = df.sort_values('confidence_level', ascending=False)
+        df = df.drop_duplicates(subset=['latitude_dd', 'longitude_dd'], keep='first')
+        
+        # Remove very similar addresses (optional)
+        df = df.drop_duplicates(subset=['inferred_address'], keep='first')
+        
+        removed_count = initial_count - len(df)
+        if removed_count > 0:
+            logger.info(f"Removed {removed_count} duplicate records")
+        
+        return df 

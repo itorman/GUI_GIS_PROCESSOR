@@ -13,7 +13,6 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout
                              QFileDialog, QLabel, QProgressBar, QMessageBox,
                              QHeaderView, QTextEdit, QTabWidget, QGroupBox,
                              QComboBox, QLineEdit, QSpinBox, QCheckBox)
-from export.data_exporter import DataExporter
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QCoreApplication
 from PyQt5.QtGui import QFont, QIcon
 
@@ -22,6 +21,8 @@ from preprocessing.document_processor import DocumentProcessor
 from llm.llm_client import LLMClient
 from postprocessing.data_processor import DataProcessor
 from export.data_exporter import DataExporter
+from export.standardized_exporter import StandardizedExporter
+from utils.quality_assessor import QualityAssessor
 
 
 class ProcessingThread(QThread):
@@ -48,11 +49,18 @@ class ProcessingThread(QThread):
             self.status.emit("Extracting addresses with LLM...")
             self.progress.emit(30)
             
-            # Process with LLM using improved batch processing
+            # Process with LLM using enhanced contextual processing
             llm_client = LLMClient(self.llm_config)
             
-            # Use improved batch processing if available
-            if hasattr(llm_client, 'extract_addresses_batch'):
+            # Use contextual processing if enabled
+            if self.llm_config.get('use_contextual', True) and hasattr(llm_client, 'extract_addresses_contextual'):
+                self.status.emit("Processing document with contextual address inference...")
+                results = llm_client.extract_addresses_contextual(text_chunks)
+                # Convert StandardizedExtraction objects to dictionaries for compatibility
+                if results and hasattr(results[0], '__dict__'):
+                    results = [result.__dict__ for result in results]
+                self.progress.emit(70)
+            elif hasattr(llm_client, 'extract_addresses_batch'):
                 self.status.emit("Processing all chunks with improved batch extraction...")
                 results = llm_client.extract_addresses_batch(text_chunks)
                 self.progress.emit(70)
@@ -282,6 +290,55 @@ class MainWindow(QMainWindow):
         
         layout.addWidget(options_group)
         
+        # Enhanced Extraction Options
+        extraction_group = QGroupBox("Enhanced Extraction Settings")
+        extraction_layout = QVBoxLayout(extraction_group)
+        
+        # Extraction mode
+        mode_layout = QHBoxLayout()
+        mode_layout.addWidget(QLabel("Extraction Mode:"))
+        self.extraction_mode_combo = QComboBox()
+        self.extraction_mode_combo.addItems([
+            "Standard", 
+            "High Context", 
+            "Conservative",
+            "Aggressive Inference"
+        ])
+        self.extraction_mode_combo.setCurrentText("High Context")
+        self.extraction_mode_combo.setToolTip("High Context: Uses full document context for better address inference")
+        mode_layout.addWidget(self.extraction_mode_combo)
+        extraction_layout.addLayout(mode_layout)
+        
+        # Context size
+        context_layout = QHBoxLayout()
+        context_layout.addWidget(QLabel("Context Size:"))
+        self.context_size_spin = QSpinBox()
+        self.context_size_spin.setRange(500, 5000)
+        self.context_size_spin.setValue(2000)
+        self.context_size_spin.setToolTip("Number of characters to use as document context")
+        context_layout.addWidget(self.context_size_spin)
+        extraction_layout.addLayout(context_layout)
+        
+        # Minimum confidence
+        confidence_layout = QHBoxLayout()
+        confidence_layout.addWidget(QLabel("Minimum Confidence:"))
+        self.min_confidence_spin = QDoubleSpinBox()
+        self.min_confidence_spin.setRange(0.0, 1.0)
+        self.min_confidence_spin.setSingleStep(0.1)
+        self.min_confidence_spin.setValue(0.5)
+        self.min_confidence_spin.setDecimals(1)
+        self.min_confidence_spin.setToolTip("Filter out extractions below this confidence level")
+        confidence_layout.addWidget(self.min_confidence_spin)
+        extraction_layout.addLayout(confidence_layout)
+        
+        # Use contextual extraction
+        self.use_contextual_check = QCheckBox("Enable Contextual Address Inference")
+        self.use_contextual_check.setChecked(True)
+        self.use_contextual_check.setToolTip("Use document context to infer complete addresses from partial information")
+        extraction_layout.addWidget(self.use_contextual_check)
+        
+        layout.addWidget(extraction_group)
+        
         # Apply Settings Button
         apply_layout = QHBoxLayout()
         self.apply_settings_btn = QPushButton("Apply Settings")
@@ -356,6 +413,12 @@ class MainWindow(QMainWindow):
             chunk_size = self.chunk_size_spin.value()
             enable_ocr = self.enable_ocr_check.isChecked()
             
+            # Get enhanced extraction settings
+            extraction_mode = self.extraction_mode_combo.currentText().lower().replace(' ', '_')
+            context_size = self.context_size_spin.value()
+            min_confidence = self.min_confidence_spin.value()
+            use_contextual = self.use_contextual_check.isChecked()
+            
             # Validate settings
             if not server_url:
                 QMessageBox.warning(self, "Warning", "Server URL cannot be empty")
@@ -366,11 +429,12 @@ class MainWindow(QMainWindow):
                 return
             
             # Update status
-            self.settings_status_label.setText(f"Settings applied: {llm_type} - {model}")
+            mode_display = "Contextual" if use_contextual else "Standard"
+            self.settings_status_label.setText(f"Settings applied: {llm_type} - {model} ({mode_display})")
             self.settings_status_label.setStyleSheet("color: #4CAF50; font-size: 12px; padding: 5px; font-weight: bold;")
             
             # Log settings
-            self.log_status(f"Settings applied: LLM={llm_type}, Server={server_url}, Model={model}")
+            self.log_status(f"Settings applied: LLM={llm_type}, Server={server_url}, Model={model}, Mode={extraction_mode}")
             
             QMessageBox.information(
                 self,
@@ -380,7 +444,11 @@ class MainWindow(QMainWindow):
                 f"Server URL: {server_url}\n"
                 f"Model: {model}\n"
                 f"Chunk Size: {chunk_size}\n"
-                f"OCR Enabled: {enable_ocr}"
+                f"OCR Enabled: {enable_ocr}\n"
+                f"Extraction Mode: {extraction_mode.replace('_', ' ').title()}\n"
+                f"Context Size: {context_size}\n"
+                f"Min Confidence: {min_confidence}\n"
+                f"Contextual Inference: {use_contextual}"
             )
             
         except Exception as e:
@@ -393,21 +461,21 @@ class MainWindow(QMainWindow):
         tab = QWidget()
         layout = QVBoxLayout(tab)
         
-        # Results table
+        # Results table with standardized format
         self.results_table = QTableWidget()
         self.results_table.setColumnCount(6)
         self.results_table.setHorizontalHeaderLabels([
-            "Original Text", "Normalized Address", "Latitude", "Longitude", "X", "Y"
+            "Original Text", "Inferred Address", "Confidence", "Latitude DD", "Longitude DD", "Quality"
         ])
         
         # Set table properties
         header = self.results_table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Stretch)  # Original Text
-        header.setSectionResizeMode(1, QHeaderView.Stretch)  # Normalized Address
-        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)  # Lat
-        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)  # Lon
-        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)  # X
-        header.setSectionResizeMode(5, QHeaderView.ResizeToContents)  # Y
+        header.setSectionResizeMode(1, QHeaderView.Stretch)  # Inferred Address
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)  # Confidence
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)  # Latitude DD
+        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)  # Longitude DD
+        header.setSectionResizeMode(5, QHeaderView.ResizeToContents)  # Quality
         
         layout.addWidget(self.results_table)
         
@@ -415,6 +483,21 @@ class MainWindow(QMainWindow):
         self.summary_label = QLabel("No data processed yet")
         self.summary_label.setStyleSheet("padding: 10px; background: #f0f0f0; border-radius: 5px; color: #333; font-size: 13px;")
         layout.addWidget(self.summary_label)
+        
+        # Quality Assessment Panel
+        quality_group = QGroupBox("Quality Assessment")
+        quality_layout = QVBoxLayout(quality_group)
+        
+        self.quality_label = QLabel("No quality assessment available")
+        self.quality_label.setStyleSheet("padding: 10px; color: #666; font-size: 12px;")
+        quality_layout.addWidget(self.quality_label)
+        
+        # Quality statistics
+        self.quality_stats_label = QLabel("")
+        self.quality_stats_label.setStyleSheet("padding: 5px; color: #333; font-size: 11px;")
+        quality_layout.addWidget(self.quality_stats_label)
+        
+        layout.addWidget(quality_group)
         
         return tab
     
@@ -440,13 +523,17 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Warning", "Please upload a document first.")
             return
         
-        # Get LLM configuration
+        # Get LLM configuration including enhanced settings
         llm_config = {
             'type': self.llm_type_combo.currentText(),
             'server_url': self.server_url_edit.text(),
             'model': self.model_name_edit.text(),
             'chunk_size': self.chunk_size_spin.value(),
-            'enable_ocr': self.enable_ocr_check.isChecked()
+            'enable_ocr': self.enable_ocr_check.isChecked(),
+            'extraction_mode': self.extraction_mode_combo.currentText().lower().replace(' ', '_'),
+            'context_size': self.context_size_spin.value(),
+            'min_confidence': self.min_confidence_spin.value(),
+            'use_contextual': self.use_contextual_check.isChecked()
         }
         
         # Disable buttons during processing
@@ -473,25 +560,41 @@ class MainWindow(QMainWindow):
         self.status_bar.showMessage(message)
     
     def processing_finished(self, results):
-        """Handle processing completion"""
+        """Handle processing completion with quality assessment"""
         # Re-enable buttons
         self.process_btn.setEnabled(True)
         self.upload_btn.setEnabled(True)
         self.progress_bar.setVisible(False)
         
         if results is not None and not results.empty:
-            # Display results in table
-            self.display_results(results)
+            # Assess quality of results
+            quality_assessor = QualityAssessor()
+            quality_report = quality_assessor.assess_batch_quality(results.to_dict('records'))
+            
+            # Display results in table with quality information
+            self.display_standardized_results(results, quality_report)
             
             # Show success message with statistics
             total_records = len(results)
-            records_with_coords = len(results[results['latitude'].notna() & results['longitude'].notna()])
+            
+            # Check for standardized columns
+            lat_col = 'latitude_dd' if 'latitude_dd' in results.columns else 'latitude'
+            lon_col = 'longitude_dd' if 'longitude_dd' in results.columns else 'longitude'
+            
+            records_with_coords = len(results[results[lat_col].notna() & results[lon_col].notna()])
+            
+            # Quality summary
+            quality_dist = quality_report['quality_distribution']
+            excellent_count = quality_dist.get('Excellent', 0)
+            good_count = quality_dist.get('Good', 0)
             
             QMessageBox.information(
                 self, 
                 "Extracción Completada", 
                 f"Se extrajeron {total_records} direcciones del documento.\n"
                 f"De ellas, {records_with_coords} tienen coordenadas geográficas.\n\n"
+                f"Calidad: {excellent_count} excelentes, {good_count} buenas\n"
+                f"Calidad general: {quality_report['overall_quality']}\n\n"
                 f"Los resultados se muestran en la tabla de abajo."
             )
         else:
@@ -501,6 +604,144 @@ class MainWindow(QMainWindow):
                 "No se encontraron direcciones en el documento.\n"
                 "Intenta con otro documento o verifica la configuración."
             )
+    
+    def display_standardized_results(self, results, quality_report):
+        """Display standardized results with quality assessment"""
+        # Clear existing data
+        self.results_table.setRowCount(0)
+        
+        if results.empty:
+            return
+        
+        # Map columns to standardized format
+        original_col = 'original_text' if 'original_text' in results.columns else 'text'
+        address_col = 'inferred_address' if 'inferred_address' in results.columns else 'normalized_address'
+        confidence_col = 'confidence_level' if 'confidence_level' in results.columns else 'confidence'
+        lat_col = 'latitude_dd' if 'latitude_dd' in results.columns else 'latitude'
+        lon_col = 'longitude_dd' if 'longitude_dd' in results.columns else 'longitude'
+        
+        # Set table row count
+        self.results_table.setRowCount(len(results))
+        
+        # Get individual quality assessments
+        quality_assessor = QualityAssessor()
+        
+        for i, (_, row) in enumerate(results.iterrows()):
+            # Original text
+            original_text = str(row.get(original_col, ''))[:100] + "..." if len(str(row.get(original_col, ''))) > 100 else str(row.get(original_col, ''))
+            self.results_table.setItem(i, 0, QTableWidgetItem(original_text))
+            
+            # Inferred address
+            address = str(row.get(address_col, ''))
+            self.results_table.setItem(i, 1, QTableWidgetItem(address))
+            
+            # Confidence
+            confidence = row.get(confidence_col, 0.0)
+            confidence_item = QTableWidgetItem(f"{confidence:.2f}")
+            # Color code confidence
+            if confidence >= 0.8:
+                confidence_item.setStyleSheet("background-color: #d4edda; color: #155724;")
+            elif confidence >= 0.5:
+                confidence_item.setStyleSheet("background-color: #fff3cd; color: #856404;")
+            else:
+                confidence_item.setStyleSheet("background-color: #f8d7da; color: #721c24;")
+            self.results_table.setItem(i, 2, confidence_item)
+            
+            # Coordinates
+            lat = row.get(lat_col, 0.0)
+            lon = row.get(lon_col, 0.0)
+            self.results_table.setItem(i, 3, QTableWidgetItem(f"{lat:.6f}"))
+            self.results_table.setItem(i, 4, QTableWidgetItem(f"{lon:.6f}"))
+            
+            # Quality assessment
+            row_dict = row.to_dict()
+            quality_assessment = quality_assessor.assess_extraction_quality(row_dict)
+            
+            if hasattr(quality_assessment, 'quality_label'):
+                quality_label = quality_assessment.quality_label
+                quality_score = quality_assessment.quality_score
+            else:
+                quality_label = quality_assessment['quality_label']
+                quality_score = quality_assessment['quality_score']
+            
+            quality_item = QTableWidgetItem(f"{quality_label} ({quality_score:.2f})")
+            # Color code quality
+            if quality_label == 'Excellent':
+                quality_item.setStyleSheet("background-color: #d1ecf1; color: #0c5460;")
+            elif quality_label == 'Good':
+                quality_item.setStyleSheet("background-color: #d4edda; color: #155724;")
+            elif quality_label == 'Fair':
+                quality_item.setStyleSheet("background-color: #fff3cd; color: #856404;")
+            else:
+                quality_item.setStyleSheet("background-color: #f8d7da; color: #721c24;")
+            self.results_table.setItem(i, 5, quality_item)
+        
+        # Update summary
+        self.update_summary_display(results, quality_report)
+        
+        # Store current results for export
+        self.current_results = results
+        
+        # Enable export buttons
+        self.export_csv_btn.setEnabled(True)
+        self.export_excel_btn.setEnabled(True)
+        self.export_shapefile_btn.setEnabled(True)
+        self.export_arcgis_btn.setEnabled(True)
+    
+    def update_summary_display(self, results, quality_report):
+        """Update summary and quality displays"""
+        if results.empty:
+            self.summary_label.setText("No data processed yet")
+            self.quality_label.setText("No quality assessment available")
+            return
+        
+        # Summary statistics
+        total_records = len(results)
+        lat_col = 'latitude_dd' if 'latitude_dd' in results.columns else 'latitude'
+        lon_col = 'longitude_dd' if 'longitude_dd' in results.columns else 'longitude'
+        records_with_coords = len(results[results[lat_col].notna() & results[lon_col].notna()])
+        
+        confidence_col = 'confidence_level' if 'confidence_level' in results.columns else 'confidence'
+        avg_confidence = results[confidence_col].mean() if confidence_col in results.columns else 0.0
+        
+        summary_text = (
+            f"Total Records: {total_records} | "
+            f"With Coordinates: {records_with_coords} | "
+            f"Average Confidence: {avg_confidence:.2f}"
+        )
+        self.summary_label.setText(summary_text)
+        
+        # Quality assessment display
+        quality_dist = quality_report['quality_distribution']
+        overall_quality = quality_report['overall_quality']
+        avg_score = quality_report.get('average_score', 0.0)
+        
+        quality_text = (
+            f"Overall Quality: {overall_quality} (Score: {avg_score:.2f})\n"
+            f"Distribution: {quality_dist['Excellent']} Excellent, {quality_dist['Good']} Good, "
+            f"{quality_dist['Fair']} Fair, {quality_dist['Poor']} Poor"
+        )
+        
+        # Color code overall quality
+        if overall_quality == 'Excellent':
+            color = "#d1ecf1"
+        elif overall_quality == 'Good':
+            color = "#d4edda"
+        elif overall_quality == 'Fair':
+            color = "#fff3cd"
+        else:
+            color = "#f8d7da"
+        
+        self.quality_label.setText(quality_text)
+        self.quality_label.setStyleSheet(f"padding: 10px; background: {color}; border-radius: 5px; font-size: 12px;")
+        
+        # Quality statistics
+        recommendations = quality_report.get('recommendations', [])
+        if recommendations:
+            rec_text = "Recommendations:\n• " + "\n• ".join(recommendations[:3])
+            self.quality_stats_label.setText(rec_text)
+        else:
+            self.quality_stats_label.setText("No specific recommendations")
     
     def display_results(self, results):
         """Display results in the table with better formatting"""

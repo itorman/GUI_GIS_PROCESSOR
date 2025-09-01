@@ -13,6 +13,8 @@ import time
 # Import langextract components
 from .langextract_client import LangextractClient
 from .schemas import Address, AddressExtractionResult
+from .contextual_extractor import ContextualExtractor
+from .standardized_schemas import StandardizedExtraction
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -41,6 +43,10 @@ class LLMClient:
         self.langextract_client = None
         self._initialize_langextract()
         
+        # Initialize contextual extractor for enhanced processing
+        self.contextual_extractor = None
+        self._initialize_contextual_extractor()
+        
         # Validate configuration
         self._validate_config()
     
@@ -58,6 +64,24 @@ class LLMClient:
         except Exception as e:
             logger.warning(f"Failed to initialize langextract client: {e}")
             self.langextract_client = None
+    
+    def _initialize_contextual_extractor(self):
+        """Initialize the contextual extractor for enhanced processing"""
+        try:
+            extractor_config = {
+                'context_size': self.config.get('context_size', 2000),
+                'min_confidence': self.config.get('min_confidence', 0.5),
+                'extraction_mode': self.config.get('extraction_mode', 'standard')
+            }
+            
+            self.contextual_extractor = ContextualExtractor(
+                llm_client=self,
+                config=extractor_config
+            )
+            logger.info("Contextual extractor initialized successfully")
+        except Exception as e:
+            logger.warning(f"Failed to initialize contextual extractor: {e}")
+            self.contextual_extractor = None
     
     def _validate_config(self):
         """Validate LLM configuration"""
@@ -235,6 +259,96 @@ class LLMClient:
         
         return all_results
     
+    def extract_addresses_contextual(self, text_chunks: List[str]) -> List[StandardizedExtraction]:
+        """
+        Extract addresses using contextual processing for better inference
+        
+        Args:
+            text_chunks: List of text chunks from the document
+            
+        Returns:
+            List of standardized extractions with inferred addresses
+        """
+        if not text_chunks:
+            return []
+        
+        logger.info(f"Starting contextual address extraction for {len(text_chunks)} chunks")
+        
+        # Use contextual extractor if available
+        if self.contextual_extractor:
+            try:
+                extractions = self.contextual_extractor.process_document_with_context(text_chunks)
+                logger.info(f"Contextual extraction completed: {len(extractions)} standardized extractions")
+                return extractions
+            except Exception as e:
+                logger.error(f"Contextual extraction failed: {e}")
+                # Fallback to traditional batch processing
+                logger.info("Falling back to traditional batch processing")
+        
+        # Fallback: convert traditional extraction to standardized format
+        logger.info("Using traditional extraction with standardization")
+        traditional_results = self.extract_addresses_batch(text_chunks)
+        
+        # Convert to standardized format
+        standardized_results = []
+        for result in traditional_results:
+            try:
+                standardized = StandardizedExtraction(
+                    original_text=result.get('original_text', ''),
+                    inferred_address=self._build_inferred_address_from_legacy(result),
+                    confidence_level=result.get('confidence', 0.5),
+                    latitude_dd=result.get('latitude', 0.0),
+                    longitude_dd=result.get('longitude', 0.0)
+                )
+                standardized_results.append(standardized)
+            except Exception as e:
+                logger.warning(f"Failed to standardize result: {e}")
+                continue
+        
+        return standardized_results
+    
+    def _build_inferred_address_from_legacy(self, result: Dict[str, Any]) -> str:
+        """Build inferred address from legacy extraction result"""
+        components = []
+        
+        # Build address from components
+        if result.get('street'):
+            street_part = result['street']
+            if result.get('number'):
+                street_part += f" {result['number']}"
+            components.append(street_part)
+        
+        if result.get('city'):
+            components.append(result['city'])
+        
+        if result.get('country'):
+            components.append(result['country'])
+        
+        # Fallback to normalized address
+        if not components and result.get('normalized_address'):
+            return result['normalized_address']
+        
+        return ', '.join(components) if components else 'Location from coordinates'
+    
+    def _query_llm_with_fallback(self, prompt: str) -> str:
+        """
+        Query LLM with fallback to different methods.
+        Used by contextual extractor.
+        """
+        try:
+            if self.llm_type == 'Ollama':
+                return self._query_ollama(prompt)
+            elif self.llm_type == 'OpenAI':
+                return self._query_openai(prompt)
+            elif self.llm_type == 'vLLM':
+                return self._query_vllm(prompt)
+            else:
+                logger.warning("No suitable LLM query method found")
+                return ""
+        except Exception as e:
+            logger.error(f"LLM query failed: {e}")
+            return ""
+    
     def _create_address_extraction_prompt(self, text: str) -> str:
         """Create a balanced prompt for address extraction"""
         prompt = f"""Extract ALL addresses, coordinates, cities, and geographic references from this text:
@@ -252,7 +366,7 @@ Return a JSON array with this format:
 [
   {{
     "original_text": "exact text found",
-    "normalized_address": "cleaned address or place name",
+  "normalized_address": "cleaned address or place name",
     "latitude": decimal_number or null,
     "longitude": decimal_number or null,
     "x": same as longitude,
@@ -677,7 +791,7 @@ JSON:"""
                 return bool(response and len(response.strip()) > 0)
             else:
                 response = self._query_generic("Hello, respond with 'OK'")
-                return bool(response and len(response.strip()) > 0)
+            return bool(response and len(response.strip()) > 0)
             
         except Exception as e:
             logger.error(f"Connection test failed: {e}")
